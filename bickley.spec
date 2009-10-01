@@ -2,14 +2,21 @@
 %define libname         %mklibname %{name} %{major}
 %define develname       %mklibname %{name} -d
 
+%define version 0.4
+%define rel 1
+%define snapshot git20090814
+%define release %mkrel 0.%{snapshot}.%{rel}
+
+%define sversion %{version}%{snapshot}
+
 Name: bickley
 Summary: Bickley is a meta data management API and framework
 Group: Applications/Multimedia
-Version: 0.4git20090814
+Version: %{version}
 License: LGPLv2.1
 URL: http://www.moblin.org
-Release: %mkrel 1
-Source0: %{name}-%{version}.tar.gz 
+Release: %{release}
+Source0: %{name}-%{sversion}.tar.gz 
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
 # patches from fedora team
@@ -71,7 +78,7 @@ Requires: %{libname} >= %{version}
 Development headers and libraries for Bickley
 
 %prep
-%setup -q
+%setup -q -n %{name}-%{sversion}
 %patch0 -p1
 %patch1 -p0
 %patch2 -p1

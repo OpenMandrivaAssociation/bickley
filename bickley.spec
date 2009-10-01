@@ -11,7 +11,7 @@
 
 Name: bickley
 Summary: Bickley is a meta data management API and framework
-Group: Applications/Multimedia
+Group: Graphical desktop/Other
 Version: %{version}
 License: LGPLv2.1
 URL: http://www.moblin.org
@@ -68,7 +68,7 @@ Kozo library from Bickley (a meta data management API and framework)
 
 %package -n %{develname}
 Summary: Bickley development environment
-Group: System/Libraries
+Group: Development/C
 
 Requires: %{libname} = %{version}-%{release}
 Requires: pkgconfig

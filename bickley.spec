@@ -75,6 +75,7 @@ Development headers and libraries for Bickley
 %patch0 -p1
 %patch1 -p0
 %patch2 -p1
+perl -pi -e 's,^./configure.*,,' ./autogen.sh
 
 %build
 ./autogen.sh

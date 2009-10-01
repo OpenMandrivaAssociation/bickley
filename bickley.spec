@@ -19,21 +19,19 @@ Patch2: 0001-Port-to-gupnp-0.13.patch
 
 BuildRequires: libglib2-devel
 BuildRequires: libdbus-glib-devel
-BuildRequires: libdbus-glib-1_2-devel
 BuildRequires: clutter-gst-devel
 BuildRequires: libgstreamer-devel
 BuildRequires: libexif-devel
 BuildRequires: libmesagl-devel
-BuildRequires: libgupnp-devel
+BuildRequires: gupnp-devel
 BuildRequires: libgupnp-av-devel
-BuildRequires: libtdb-devel
+BuildRequires: tdb-devel
 BuildRequires: libGConf2-devel
 BuildRequires: libogg-devel
 BuildRequires: libvorbis-devel
 BuildRequires: libid3tag-devel
 BuildRequires: libflac-devel
 BuildRequires: python
-BuildRequires: libtdb-devel
 
 Requires: libclutter-gtk0.10_0
 Requires: gstreamer

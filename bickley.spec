@@ -3,7 +3,7 @@
 %define develname       %mklibname %{name} -d
 
 %define version 0.4
-%define rel 2
+%define rel 3
 %define snapshot git20090814
 %define release %mkrel 0.%{snapshot}.%{rel}
 
@@ -55,6 +55,7 @@ meta data about them in parallel
 %package -n %{libname}
 Summary: Bickley is a meta data management API and framework
 Group: System/Libraries
+Requires: %{name}
 
 %description -n %{libname}
 Bickley is a meta data management API and framework

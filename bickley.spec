@@ -71,6 +71,7 @@ Summary: Bickley development environment
 Group: Development/C
 
 Requires: %{libname} = %{version}-%{release}
+Provides: %{name}-devel
 
 %description -n %{develname}
 Development headers and libraries for Bickley

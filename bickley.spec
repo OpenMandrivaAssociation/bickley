@@ -3,7 +3,7 @@
 %define develname       %mklibname %{name} -d
 
 %define version 0.4
-%define rel 3
+%define rel 4
 %define snapshot git20090814
 %define release %mkrel 0.%{snapshot}.%{rel}
 
@@ -40,7 +40,6 @@ BuildRequires: libid3tag-devel
 BuildRequires: libflac-devel
 BuildRequires: python
 
-Requires: libclutter-gtk0.10_0
 Requires: gstreamer
 Requires: sqlite-tools
 Requires: xdg-user-dirs

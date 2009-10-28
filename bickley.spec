@@ -2,9 +2,9 @@
 %define libname         %mklibname %{name} %{major}
 %define develname       %mklibname %{name} -d
 
-%define version 0.4
-%define rel 4
-%define snapshot git20090814
+%define version 0.4.3
+%define rel 1
+%define snapshot git20091019
 %define release %mkrel 0.%{snapshot}.%{rel}
 
 %define sversion %{version}%{snapshot}
@@ -20,8 +20,8 @@ Source0: %{name}-%{sversion}.tar.gz
 BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 
 # patches from fedora team
-Patch0: nocrash.patch
-Patch1: bickley-0.4.3-kozo-format.patch
+Patch0: bickley-0.4.3-kozo-format.patch
+Patch1: nocrash.patch
 Patch2: 0001-Port-to-gupnp-0.13.patch
 
 BuildRequires: libglib2-devel
@@ -78,8 +78,8 @@ Development headers and libraries for Bickley
 
 %prep
 %setup -q -n %{name}-%{sversion}
-%patch0 -p1
-%patch1 -p0
+%patch0 -p0
+%patch1 -p1
 %patch2 -p1
 perl -pi -e 's,^./configure.*,,' ./autogen.sh
 

@@ -4,7 +4,7 @@
 
 %define version 0.4.3
 %define rel 1
-%define snapshot git20091019
+%define snapshot git20091027
 %define release %mkrel 0.%{snapshot}.%{rel}
 
 %define sversion %{version}%{snapshot}
@@ -23,6 +23,7 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-buildroot
 Patch0: bickley-0.4.3-kozo-format.patch
 Patch1: nocrash.patch
 Patch2: 0001-Port-to-gupnp-0.13.patch
+Patch3: bickley-0.4.3-fix-4987-bkl-orbiter.patch
 
 BuildRequires: libglib2-devel
 BuildRequires: libdbus-glib-devel
@@ -81,6 +82,7 @@ Development headers and libraries for Bickley
 %patch0 -p0
 %patch1 -p1
 %patch2 -p1
+%patch3 -p1
 perl -pi -e 's,^./configure.*,,' ./autogen.sh
 
 %build

@@ -40,6 +40,7 @@ BuildRequires: libvorbis-devel
 BuildRequires: libid3tag-devel
 BuildRequires: libflac-devel
 BuildRequires: python
+BuildRequires: gtk+2-devel
 
 Requires: gstreamer
 Requires: sqlite-tools

@@ -1,0 +1,54 @@
+From 359bfc1ad69ded8f3f3639fac46a6edf54da2b74 Mon Sep 17 00:00:00 2001
+From: iain <iain@linux.intel.com>
+Date: Tue, 03 Nov 2009 14:59:00 +0000
+Subject: Fix 4987 -  bkl-orbiter crashes while there multiple sources with the same name
+
+When creating the object path use the full path of the database to get a unique
+name.
+---
+diff --git a/src/bkl-source-manager.c b/src/bkl-source-manager.c
+index 50bb814..08d1429 100644
+--- a/src/bkl-source-manager.c
++++ b/src/bkl-source-manager.c
+@@ -44,11 +44,11 @@ static gboolean bkl_source_manager_list_sources (BklSourceManager *manager,
+ static char *
+ make_object_path (BklSource *source)
+ {
+-    char *path, *filename, *esc;
++    char *path, *esc;
+ 
+-    filename = g_path_get_basename (kozo_db_get_filename (source->db->db));
+-    esc = g_uri_escape_string (filename, "", FALSE);
+-    g_free (filename);
++    esc = g_compute_checksum_for_string (G_CHECKSUM_MD5,
++                                         kozo_db_get_filename (source->db->db),
++                                         -1);
+ 
+     path = g_strdup_printf ("%s%s", BKL_SOURCE_MANAGER_OBJECT_PATH, esc);
+     g_free (esc);
+diff --git a/src/bkl-source-removable.c b/src/bkl-source-removable.c
+index 7fa2e56..4a831e6 100644
+--- a/src/bkl-source-removable.c
++++ b/src/bkl-source-removable.c
+@@ -355,16 +355,16 @@ kozo_init (BklSourceRemovable *source,
+ 
+     root = g_mount_get_root (mount);
+     name = g_mount_get_name (mount);
+-    enc = g_compute_checksum_for_string (G_CHECKSUM_MD5, name, -1);
+-    path = g_file_get_path (root);
+ 
++    path = g_file_get_path (root);
+     g_object_unref (root);
+-
+     if (path == NULL) {
+         g_free (name);
+         return FALSE;
+     }
+ 
++    enc = g_compute_checksum_for_string (G_CHECKSUM_MD5, path, -1);
++
+     if (access (path, R_OK | W_OK) == 0) {
+         dirname = g_build_filename (path, ".kozo", "databases", NULL);
+ 
+--
+cgit v0.8.2

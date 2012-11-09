@@ -1,0 +1,316 @@
+From 5bd0f4e4a6ed221a8ca053765d837b4a305a5d94 Mon Sep 17 00:00:00 2001
+From: Bastien Nocera <hadess@hadess.net>
+Date: Fri, 18 Sep 2009 11:20:20 +0100
+Subject: [PATCH] Port to gupnp 0.13
+
+---
+ configure.ac          |    2 +-
+ src/bkl-finder-upnp.c |  113 ++++++++++++++++++++++---------------------------
+ 2 files changed, 52 insertions(+), 63 deletions(-)
+
+diff --git a/configure.ac b/configure.ac
+index 6df3153..4959fee 100644
+--- a/configure.ac
++++ b/configure.ac
+@@ -60,7 +60,7 @@
+ 
+ PKG_CHECK_MODULES(BICKLEY, glib-2.0 dbus-glib-1 >= 0.78)
+ 
+-PKG_CHECK_MODULES(ORBITER, glib-2.0 gio-2.0 dbus-glib-1 >= 0.78 gconf-2.0 gupnp-1.0 gupnp-av-1.0)
++PKG_CHECK_MODULES(ORBITER, glib-2.0 gio-2.0 dbus-glib-1 >= 0.78 gconf-2.0 gupnp-1.0 >= 0.13.0 gupnp-av-1.0 >= 0.5)
+ 
+ AC_ARG_ENABLE(helix, AC_HELP_STRING([--enable-helix], [enable helix support]),
+ 	      [enable_helix=${enableval}], [enable_helix="no"])
+
+diff --git a/src/bkl-finder-upnp.c b/src/bkl-finder-upnp.c
+index 5928c45..be29d14 100644
+--- a/src/bkl-finder-upnp.c
++++ b/src/bkl-finder-upnp.c
+@@ -72,60 +72,51 @@ static char *
+ get_http_get_props (GList *didl_props,
+                     char **mimetype,
+                     char **protocol_info,
+-                    char **size)
++                    long *size)
+ {
+     GList *p;
+ 
+     for (p = didl_props; p; p = p->next) {
+-        char *pi;
++        GUPnPDIDLLiteResource *res = p->data;
++        GUPnPProtocolInfo *pi;
+ 
+-        pi = gupnp_didl_lite_property_get_attribute (p->data, "protocolInfo");
+-        if (strncmp (pi, "http-get:", 9) == 0) {
++	pi = gupnp_didl_lite_resource_get_protocol_info (res);
++	if (strcmp (gupnp_protocol_info_get_protocol (pi), "http-get") == 0) {
+             if (mimetype) {
+-                char *start, *end;
+-
+-                start = strchr (pi + 9, ':');
+-                if (start != '\0' && ++start != '\0') {
+-                    end = strchr (start, ':');
+-                    *mimetype = g_strndup (start, end - start);
+-                } else {
+-                    *mimetype = NULL;
+-                }
++                *mimetype = g_strdup (gupnp_protocol_info_get_mime_type (pi));
+             }
+ 
+             if (protocol_info) {
+-                *protocol_info = pi;
+-            } else {
+-                g_free (pi);
++                *protocol_info = g_strdup (gupnp_protocol_info_to_string (pi));
+             }
+ 
+             if (size) {
+-                *size = gupnp_didl_lite_property_get_attribute (p->data,
+-                                                                "size");
++                *size = gupnp_didl_lite_resource_get_size (res);
+             }
+ 
+-            return gupnp_didl_lite_property_get_value (p->data);
+-        }
++            g_object_unref (pi);
+ 
+-        g_free (pi);
++            return g_strdup (gupnp_didl_lite_resource_get_uri (res));
++        }
++        g_object_unref (pi);
+     }
+ 
+     return NULL;
+ }
+ 
+ static const char *
+-get_property_keys (xmlNode    *didl_object,
++get_property_keys (GUPnPDIDLLiteObject *didl_object,
+                    const char *property)
+ {
+     GList *props;
+-    char *ret = NULL;
++    const char *ret = NULL;
+ 
+-    props = gupnp_didl_lite_object_get_property (didl_object, property);
++    props = gupnp_didl_lite_object_get_properties (didl_object, property);
+     if (props) {
+         GList *p;
+ 
+         for (p = props; p; p = p->next) {
+-            char *prop = gupnp_didl_lite_property_get_value (p->data);
++            const char *prop = p->data;
+ 
+             if (prop) {
+                 ret = prop;
+@@ -140,19 +131,21 @@ get_property_keys (xmlNode    *didl_object,
+ }
+ 
+ static void
+-add_artist_properties (xmlNode      *didl_object,
++add_artist_properties (GUPnPDIDLLiteObject *didl_object,
+                        BklItemAudio *item)
+ {
+     GList *props;
+     GPtrArray *artists;
+ 
+-    props = gupnp_didl_lite_object_get_property (didl_object, "artist");
++    /* FIXME: use "artists" property:
++     * http://bugzilla.openedhand.com/show_bug.cgi?id=1814 */
++    props = gupnp_didl_lite_object_get_properties (didl_object, "artist");
+     if (props) {
+         GList *p;
+ 
+         artists = g_ptr_array_sized_new (g_list_length (props));
+         for (p = props; p; p = p->next) {
+-            char *prop = gupnp_didl_lite_property_get_value (p->data);
++            const char *prop = p->data;
+ 
+             if (prop) {
+                 g_ptr_array_add (artists, g_strdup (prop));
+@@ -165,7 +158,7 @@ add_artist_properties (xmlNode      *didl_object,
+ }
+ 
+ static void
+-parse_image_item (xmlNode      *didl_object,
++parse_image_item (GUPnPDIDLLiteObject *didl_object,
+                   BklItemImage *item,
+                   const char   *subclass)
+ {
+@@ -177,7 +170,7 @@ parse_image_item (xmlNode      *didl_object,
+ }
+ 
+ static void
+-parse_audio_item (xmlNode      *didl_object,
++parse_audio_item (GUPnPDIDLLiteObject *didl_object,
+                   BklItemAudio *item,
+                   const char   *subclass)
+ {
+@@ -217,7 +210,7 @@ parse_audio_item (xmlNode      *didl_object,
+ }
+ 
+ static void
+-parse_video_item (xmlNode      *didl_object,
++parse_video_item (GUPnPDIDLLiteObject *didl_object,
+                   BklItemVideo *item,
+                   const char   *subclass)
+ {
+@@ -233,11 +226,13 @@ parse_video_item (xmlNode      *didl_object,
+ 
+ static void
+ parse_didl (BklFinderUPnP *finder,
+-            xmlNode       *didl_object)
++            GUPnPDIDLLiteObject *didl_object)
+ {
+     BklFinder *f = (BklFinder *) finder;
+     BklItem *item = NULL;
+-    char *uri, *title, *size = NULL, *mimetype = NULL, *protocol_info = NULL;
++    const char *title;
++    char *uri, *mimetype = NULL, *protocol_info = NULL;
++    long size;
+     gboolean is_item, is_container;
+     GList *didl_props;
+ 
+@@ -246,60 +241,58 @@ parse_didl (BklFinderUPnP *finder,
+     g_print ("(%s): Found %s\n", f->source->name, title);
+ #endif
+ 
+-    is_item = gupnp_didl_lite_object_is_item (didl_object);
+-    is_container = gupnp_didl_lite_object_is_container (didl_object);
++    is_item = GUPNP_IS_DIDL_LITE_ITEM (didl_object);
++    is_container = GUPNP_IS_DIDL_LITE_CONTAINER (didl_object);
+ 
+     if (is_item) {
+-        char *ref_id;
++        const char *ref_id;
+ 
+-        ref_id = gupnp_didl_lite_item_get_ref_id (didl_object);
++        ref_id = gupnp_didl_lite_item_get_ref_id (GUPNP_DIDL_LITE_ITEM (didl_object));
+         if (ref_id != NULL) {
+ #ifdef DEBUG
+             g_print ("(%s): %s is just a reference to %s\n",
+                      f->source->name, title, ref_id);
+ #endif
+-            g_free (title);
+-            g_free (ref_id);
+             return;
+         }
+     }
+ 
+-    didl_props = gupnp_didl_lite_object_get_property (didl_object, "res");
++    didl_props = gupnp_didl_lite_object_get_resources (didl_object);
+     uri = get_http_get_props (didl_props, &mimetype, &protocol_info, &size);
++    g_list_foreach (didl_props, (GFunc) g_object_unref, NULL);
+     g_list_free (didl_props);
+ 
+     if (uri == NULL) {
+         /* Didn't get any URI we like, so just quit */
+-        g_free (title);
++        g_free (mimetype);
++        g_free (protocol_info);
+         return;
+     }
+ 
+ #ifdef DEBUG
+     g_print ("   at %s\n", uri);
+-    g_print ("   %s bytes\n", size);
++    g_print ("   %ld bytes\n", size);
+     g_print ("   %s\n", mimetype);
+     g_print ("   %s\n", protocol_info);
+ #endif
+     if (is_container) {
+-        char *class;
++        const char *class;
+ 
+         class = gupnp_didl_lite_object_get_upnp_class (didl_object);
+         if (strncmp (class, "object.container.", 17) == 0) {
+-            char *subclass = class + 17;
++            const char *subclass = class + 17;
+ 
+             if (strncmp (subclass, "album", 5) == 0) {
+                 /* parse_album_container (didl_object, uri, subclass + 5); */
+             }
+         }
+-
+-        g_free (class);
+     } else {
+-        char *class;
++        const char *class;
+ 
+         class = gupnp_didl_lite_object_get_upnp_class (didl_object);
+ 
+         if (strncmp (class, "object.item.", 12) == 0) {
+-            char *subclass = class + 12;
++            const char *subclass = class + 12;
+ 
+             if (strncmp (subclass, "imageItem", 9) == 0) {
+                 BklItemImage *image = bkl_item_image_new ();
+@@ -330,8 +323,6 @@ parse_didl (BklFinderUPnP *finder,
+                 g_warning ("Unknown class: %s", class);
+             }
+         }
+-
+-        g_free (class);
+     }
+ 
+     if (item != NULL) {
+@@ -340,7 +331,7 @@ parse_didl (BklFinderUPnP *finder,
+         bkl_item_set_mimetype (item, mimetype);
+         bkl_item_set_uri (item, uri);
+         if (size) {
+-            bkl_item_set_size (item, strtol (size, NULL, 10));
++            bkl_item_set_size (item, size);
+         } else {
+             bkl_item_set_size (item, 0);
+         }
+@@ -356,22 +347,19 @@ parse_didl (BklFinderUPnP *finder,
+     }
+ 
+     g_free (uri);
+-    g_free (title);
+-    g_free (size);
+     g_free (protocol_info);
+ }
+ 
+ static void
+-didl_callback (GUPnPDIDLLiteParser *parser,
+-               xmlNode             *didl_object,
+-               gpointer             userdata)
++parser_object_available_cb (GUPnPDIDLLiteParser *parser,
++			    GUPnPDIDLLiteObject *didl_object,
++			    BklFinderUPnP *finder)
+ {
+-    BklFinderUPnP *finder = userdata;
+-    char *id = gupnp_didl_lite_object_get_id (didl_object);
++    const char *id = gupnp_didl_lite_object_get_id (didl_object);
+ 
+     /* If the node is a container then we browse it as well */
+-    if (gupnp_didl_lite_object_is_container (didl_object)) {
+-        g_queue_push_tail (finder->pending, id);
++    if (GUPNP_IS_DIDL_LITE_CONTAINER (didl_object)) {
++        g_queue_push_tail (finder->pending, g_strdup (id));
+     }
+ 
+     /* Parse this didl_object somehow... */
+@@ -410,8 +398,7 @@ browse_id (BklFinderUPnP *finder,
+         return FALSE;
+     }
+ 
+-    gupnp_didl_lite_parser_parse_didl (finder->parser, didl_result,
+-                                       didl_callback, finder, &error);
++    gupnp_didl_lite_parser_parse_didl (finder->parser, didl_result, &error);
+     if (error != NULL) {
+         g_warning ("Error parsing didl: %s", error->message);
+         g_error_free (error);
+@@ -477,6 +464,8 @@ bkl_finder_upnp_new (BklSource         *source,
+     finder->source = source;
+ 
+     upnp->parser = gupnp_didl_lite_parser_new ();
++    g_signal_connect (upnp->parser, "object-available",
++    		      G_CALLBACK (parser_object_available_cb), upnp);
+     upnp->device_info = info;
+     upnp->content_directory =
+         (GUPnPServiceProxy *) gupnp_device_info_get_service
+-- 
+1.6.2.5
+

@@ -1,0 +1,31 @@
+--- kozo/kozo-db.c.old	2009-10-01 12:37:36.000000000 -0400
++++ kozo/kozo-db.c	2009-10-01 12:38:06.000000000 -0400
+@@ -76,12 +76,12 @@
+                 g_set_error (error,
+                              KOZO_DB_ERROR,
+                              KOZO_DB_ERROR_KEY_NOT_FOUND,
+-                             tdb_errorstr (db->db));
++                             "%s", tdb_errorstr (db->db));
+         } else {
+                 g_set_error (error,
+                              KOZO_DB_ERROR,
+                              KOZO_DB_ERROR_BACKEND,
+-                             tdb_errorstr (db->db));
++                             "%s", tdb_errorstr (db->db));
+         }
+ }
+ 
+@@ -92,11 +92,11 @@
+         if (G_LIKELY (tdb_error (db->db) == TDB_ERR_EXISTS)) {
+                 g_set_error (error, KOZO_DB_ERROR,
+                              KOZO_DB_ERROR_KEY_EXISTS,
+-                             tdb_errorstr (db->db));
++                             "%s", tdb_errorstr (db->db));
+         } else {
+                 g_set_error (error, KOZO_DB_ERROR,
+                              KOZO_DB_ERROR_BACKEND,
+-                             tdb_errorstr (db->db));
++                             "%s", tdb_errorstr (db->db));
+         }
+ }
+
